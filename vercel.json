@@ -1,9 +1,10 @@
-{
-  "version": 2,
-  "builds": [
-    { "src": "index.html", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
-}
+{}
+```
+Click **Commit changes**
+
+### Step 3 — Update index.html
+Click `index.html` → pencil edit → **select all (Ctrl+A) → delete** → paste the entire content of `admin-index.html` from your downloads → click **Commit changes**
+
+### Step 4 — Wait 30 seconds then open
+```
+https://axiom-adminzwm.vercel.app
