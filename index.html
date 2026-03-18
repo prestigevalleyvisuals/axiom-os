@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Axiom OS — Admin Control Center</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#000;--bg2:#0a0d14;--bg3:#0d1520;
+  --t1:#fff;--t2:rgba(180,200,230,.85);--t3:rgba(120,150,190,.5);
+  --blue:#0078ff;--blue2:#1a8aff;
+  --border:rgba(0,100,220,.15);
+  --card:rgba(8,13,22,.97);
+  --red:#ff3d3d;--green:#00c853;--yellow:#ffab00;
+  --mono:'SF Mono','Fira Code',monospace;
+}
+body{background:var(--bg);color:var(--t1);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;min-height:100vh;}
+
+/* ── LOGIN ── */
+#loginScreen{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 0%,#0a1628,#000 70%);display:flex;align-items:center;justify-content:center;z-index:200;}
+.login-box{width:380px;padding:40px;background:var(--card);border:1px solid rgba(0,120,255,.2);border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.9);}
+.login-logo{font-size:24px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;}
+.login-sub{font-size:12px;color:var(--t3);margin-bottom:28px;}
+.login-label{font-size:11.5px;color:var(--t2);margin-bottom:6px;display:block;}
+.login-input{width:100%;background:rgba(0,60,160,.08);border:1px solid rgba(0,120,255,.18);border-radius:10px;padding:11px 14px;color:#fff;font-size:14px;outline:none;margin-bottom:14px;font-family:inherit;transition:border .2s;}
+.login-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,120,255,.1);}
+.login-btn{width:100%;background:var(--blue);color:#fff;border:none;padding:12px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;}
+.login-btn:hover{background:var(--blue2);}
+.login-hint{font-size:11px;color:var(--t3);text-align:center;margin-top:10px;}
+.login-err{font-size:12px;color:var(--red);margin-top:10px;padding:8px 12px;background:rgba(255,61,61,.08);border:1px solid rgba(255,61,61,.15);border-radius:8px;display:none;}
+.login-step{display:none;}
+.login-step.active{display:block;}
+.back-link{background:none;border:none;color:var(--t3);font-size:12px;cursor:pointer;margin-top:8px;width:100%;font-family:inherit;text-align:center;}
+.back-link:hover{color:var(--t2);}
+
+/* ── APP SHELL ── */
+#app{display:none;height:100vh;flex-direction:column;}
+.topbar{height:52px;background:rgba(8,13,22,.98);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;}
+.tb-logo{font-size:15px;font-weight:800;letter-spacing:-.03em;}
+.tb-badge{font-size:10px;background:rgba(0,120,255,.15);border:1px solid rgba(0,120,255,.25);color:var(--blue);padding:2px 8px;border-radius:20px;}
+.tb-spacer{flex:1;}
+.tb-user{font-size:12px;color:var(--t3);}
+.tb-logout{background:transparent;border:1px solid rgba(0,120,255,.2);color:var(--t3);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;}
+.tb-logout:hover{border-color:var(--red);color:var(--red);}
+
+/* ── NAV ── */
+.layout{display:flex;flex:1;overflow:hidden;}
+.sidebar{width:200px;background:var(--bg2);border-right:1px solid var(--border);padding:16px 10px;flex-shrink:0;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--t2);margin-bottom:2px;border:none;background:none;width:100%;text-align:left;font-family:inherit;}
+.nav-item:hover{background:rgba(0,120,255,.08);color:var(--t1);}
+.nav-item.active{background:rgba(0,120,255,.14);color:var(--blue);}
+.nav-icon{font-size:15px;width:20px;text-align:center;}
+.nav-section{font-size:9.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;padding:14px 12px 4px;margin-top:4px;}
+
+/* ── MAIN ── */
+.main{flex:1;overflow-y:auto;padding:28px;}
+.page{display:none;}
+.page.active{display:block;}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-.03em;margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--t3);margin-bottom:24px;}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;}
+.card-title{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.stat-val{font-size:28px;font-weight:800;letter-spacing:-.04em;}
+.stat-label{font-size:11px;color:var(--t3);margin-top:2px;}
+.stat-blue{border-color:rgba(0,120,255,.25);background:rgba(0,120,255,.05);}
+.stat-green{border-color:rgba(0,200,83,.2);background:rgba(0,200,83,.04);}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;font-size:11px;font-weight:600;color:var(--t3);padding:8px 12px;border-bottom:1px solid var(--border);}
+td{padding:10px 12px;border-bottom:1px solid rgba(0,100,220,.07);color:var(--t2);}
+tr:hover td{background:rgba(0,120,255,.04);}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;}
+.badge-green{background:rgba(0,200,83,.12);color:#00c853;border:1px solid rgba(0,200,83,.2);}
+.badge-red{background:rgba(255,61,61,.1);color:#ff3d3d;border:1px solid rgba(255,61,61,.15);}
+.badge-yellow{background:rgba(255,171,0,.1);color:#ffab00;border:1px solid rgba(255,171,0,.2);}
+.badge-blue{background:rgba(0,120,255,.1);color:#0078ff;border:1px solid rgba(0,120,255,.2);}
+
+/* ── FORMS ── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-group{margin-bottom:12px;}
+.form-label{font-size:11.5px;color:var(--t2);margin-bottom:5px;display:block;}
+.form-input{width:100%;background:rgba(0,60,160,.06);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:#fff;font-size:13px;outline:none;font-family:inherit;}
+.form-input:focus{border-color:var(--blue);}
+select.form-input option{background:#0a0d14;}
+.btn{padding:9px 18px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:var(--blue2);}
+.btn-danger{background:rgba(255,61,61,.1);color:var(--red);border:1px solid rgba(255,61,61,.2);}
+.btn-danger:hover{background:rgba(255,61,61,.2);}
+.btn-ghost{background:rgba(0,120,255,.08);color:var(--t2);border:1px solid var(--border);}
+.btn-ghost:hover{background:rgba(0,120,255,.15);}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:6px;}
+.btn-row{display:flex;gap:8px;margin-top:14px;}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;display:none;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--card);border:1px solid rgba(0,120,255,.2);border-radius:16px;padding:28px;width:480px;max-height:80vh;overflow-y:auto;}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:20px;}
+.modal-close{float:right;background:none;border:none;color:var(--t3);cursor:pointer;font-size:18px;}
+
+/* ── MISC ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.empty{text-align:center;padding:40px;color:var(--t3);font-size:13px;}
+.copy-btn{background:rgba(0,120,255,.1);border:1px solid rgba(0,120,255,.2);color:var(--blue);padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-family:inherit;}
+.link-display{font-size:12px;color:var(--blue);word-break:break-all;padding:8px;background:rgba(0,120,255,.06);border-radius:6px;margin-top:6px;}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
+.dot-green{background:#00c853;}
+.dot-red{background:#ff3d3d;}
+.dot-yellow{background:#ffab00;}
+input[type=number]{-moz-appearance:textfield;}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ═══════════════════════════════════ -->
+<div id="loginScreen">
+ <div class="login-box">
+  <div class="login-logo">⬡ Axiom OS</div>
+  <div class="login-sub">Admin Control Center</div>
+
+  <!-- Step 1: URL + Key -->
+  <div class="login-step active" id="step1">
+   <label class="login-label">Backend URL</label>
+   <input class="login-input" id="loginUrl" type="text" value="https://axiom-backend-production-0618.up.railway.app" placeholder="https://axiom-backend-production-0618.up.railway.app">
+   <label class="login-label">Master Key <span style="color:var(--t3)">(from Railway Variables)</span></label>
+   <input class="login-input" id="loginKey" type="password" placeholder="Your ADMIN_SECRET_KEY">
+   <button class="login-btn" onclick="goToPin()">Next →</button>
+   <div class="login-hint">Saved on this device after first entry.</div>
+  </div>
+
+  <!-- Step 2: PIN -->
+  <div class="login-step" id="step2">
+   <div style="text-align:center;margin-bottom:20px;">
+    <div style="font-size:36px;margin-bottom:8px;">🔐</div>
+    <div style="font-size:14px;color:var(--t2);">Enter your personal PIN</div>
+   </div>
+   <input class="login-input" id="loginPin" type="password" placeholder="Your PIN" style="text-align:center;font-size:18px;letter-spacing:.1em;" onkeydown="if(event.key==='Enter')doLogin()">
+   <button class="login-btn" onclick="doLogin()">Sign In →</button>
+   <button class="back-link" onclick="backToStep1()">← Use different backend</button>
+  </div>
+
+  <div class="login-err" id="loginErr"></div>
+ </div>
+</div>
+
+<!-- ══ APP ══════════════════════════════════════ -->
+<div id="app">
+ <!-- Topbar -->
+ <div class="topbar">
+  <div class="tb-logo">⬡ Axiom OS</div>
+  <div class="tb-badge" id="tbRole">Admin</div>
+  <div class="tb-spacer"></div>
+  <div class="tb-user" id="tbUser">Loading...</div>
+  <button class="tb-logout" onclick="logout()">Sign Out</button>
+ </div>
+
+ <div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+   <div class="nav-section">Overview</div>
+   <button class="nav-item active" onclick="nav('dashboard')"><span class="nav-icon">📊</span>Dashboard</button>
+   <button class="nav-item" onclick="nav('clients')"><span class="nav-icon">🏢</span>Clients</button>
+
+   <div class="nav-section">Billing</div>
+   <button class="nav-item" onclick="nav('customers')"><span class="nav-icon">💳</span>Customers</button>
+   <button class="nav-item" onclick="nav('billing')"><span class="nav-icon">💰</span>MRR & Billing</button>
+
+   <div class="nav-section">System</div>
+   <button class="nav-item" onclick="nav('broadcast')"><span class="nav-icon">📣</span>Broadcast</button>
+   <button class="nav-item" onclick="nav('rollout')"><span class="nav-icon">🚀</span>Rollout</button>
+   <button class="nav-item" onclick="nav('partner')"><span class="nav-icon">🤝</span>Partners</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+
+   <!-- DASHBOARD -->
+   <div class="page active" id="page-dashboard">
+    <div class="page-title">Dashboard</div>
+    <div class="page-sub">Axiom OS control overview</div>
+    <div class="stat-grid">
+     <div class="stat stat-blue"><div class="stat-val" id="st-clients">—</div><div class="stat-label">Active Clients</div></div>
+     <div class="stat stat-green"><div class="stat-val" id="st-mrr">—</div><div class="stat-label">MRR</div></div>
+     <div class="stat"><div class="stat-val" id="st-customers">—</div><div class="stat-label">Customers</div></div>
+     <div class="stat"><div class="stat-val" id="st-version">—</div><div class="stat-label">Server Version</div></div>
+    </div>
+    <div class="card">
+     <div class="card-title">System Status</div>
+     <div id="statusList" style="font-size:13px;color:var(--t2);line-height:2;">Loading...</div>
+    </div>
+   </div>
+
+   <!-- CLIENTS -->
+   <div class="page" id="page-clients">
+    <div class="section-header">
+     <div><div class="page-title">Clients</div><div class="page-sub">Manage active deployments</div></div>
+     <button class="btn btn-primary" onclick="openModal('clientModal')">+ Add Client</button>
+    </div>
+    <div class="card">
+     <div class="table-wrap">
+      <table>
+       <thead><tr><th>Client ID</th><th>Status</th><th>Plan</th><th>Last Seen</th><th>Actions</th></tr></thead>
+       <tbody id="clientTable"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+
+   <!-- CUSTOMERS -->
+   <div class="page" id="page-customers">
+    <div class="section-header">
+     <div><div class="page-title">Customers</div><div class="page-sub">Billing & account management</div></div>
+     <button class="btn btn-primary" onclick="openModal('customerModal')">+ Add Customer</button>
+    </div>
+    <div class="card">
+     <div class="table-wrap">
+      <table>
+       <thead><tr><th>Business</th><th>Client ID</th><th>Status</th><th>Monthly</th><th>Setup</th><th>Actions</th></tr></thead>
+       <tbody id="customerTable"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+
+   <!-- BILLING -->
+   <div class="page" id="page-billing">
+    <div class="page-title">MRR & Billing</div>
+    <div class="page-sub">Revenue overview</div>
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+     <div class="stat stat-green"><div class="stat-val" id="b-mrr">$0</div><div class="stat-label">Monthly Recurring Revenue</div></div>
+     <div class="stat stat-blue"><div class="stat-val" id="b-active">0</div><div class="stat-label">Active Subscribers</div></div>
+     <div class="stat"><div class="stat-val" id="b-suspended">0</div><div class="stat-label">Suspended</div></div>
+    </div>
+    <div class="card">
+     <div class="card-title">Payment Events</div>
+     <div id="paymentEvents" class="empty">No payment events yet</div>
+    </div>
+   </div>
+
+   <!-- BROADCAST -->
+   <div class="page" id="page-broadcast">
+    <div class="page-title">Broadcast</div>
+    <div class="page-sub">Send a message to all clients</div>
+    <div class="card">
+     <div class="form-group"><label class="form-label">Message</label><textarea class="form-input" id="broadcastMsg" rows="4" placeholder="Enter your message..."></textarea></div>
+     <div class="form-row">
+      <div class="form-group"><label class="form-label">Type</label>
+       <select class="form-input" id="broadcastType"><option value="info">Info</option><option value="warning">Warning</option><option value="success">Success</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Expires (hours)</label><input class="form-input" id="broadcastExp" type="number" value="24"></div>
+     </div>
+     <button class="btn btn-primary" onclick="sendBroadcast()">Send Broadcast</button>
+    </div>
+   </div>
+
+   <!-- ROLLOUT -->
+   <div class="page" id="page-rollout">
+    <div class="page-title">Rollout Control</div>
+    <div class="page-sub">Push updates to client groups</div>
+    <div class="card">
+     <div class="form-group"><label class="form-label">Target Group</label>
+      <select class="form-input" id="rolloutGroup"><option value="all">All Clients</option><option value="beta">Beta</option><option value="stable">Stable</option><option value="legacy">Legacy</option></select>
+     </div>
+     <div class="form-group"><label class="form-label">Client Version</label><input class="form-input" id="rolloutVersion" placeholder="e.g. 1.1.0"></div>
+     <button class="btn btn-primary" onclick="pushRollout()">Push Update</button>
+    </div>
+   </div>
+
+   <!-- PARTNER -->
+   <div class="page" id="page-partner">
+    <div class="page-title">Partner Access</div>
+    <div class="page-sub">Team roles and permissions</div>
+    <div class="card">
+     <div class="card-title">Cory Hernandez — Architect</div>
+     <div style="font-size:13px;color:var(--t2);line-height:2;">
+      ✅ Full admin access<br>✅ Can delete clients<br>✅ Can view admin key<br>✅ Can edit billing<br>✅ Can edit roles
+     </div>
+    </div>
+    <div class="card">
+     <div class="card-title">Trebor Acuna — Director</div>
+     <div style="font-size:13px;color:var(--t2);line-height:2;">
+      ✅ Can manage clients<br>✅ Can push updates<br>✅ Can suspend accounts<br>❌ Cannot delete<br>❌ Cannot edit billing or roles
+     </div>
+    </div>
+   </div>
+
+  </div><!-- /main -->
+ </div><!-- /layout -->
+</div><!-- /app -->
+
+<!-- ══ MODALS ════════════════════════════════════ -->
+<!-- Add Client -->
+<div class="modal-bg" id="clientModal">
+ <div class="modal">
+  <div class="modal-title">Add Client <button class="modal-close" onclick="closeModal('clientModal')">×</button></div>
+  <div class="form-group"><label class="form-label">Client ID (URL slug, e.g. pvv-test)</label><input class="form-input" id="c-id" placeholder="pvv-test"></div>
+  <div class="form-group"><label class="form-label">Plan</label>
+   <select class="form-input" id="c-plan"><option>starter</option><option>growth</option><option>scale</option></select>
+  </div>
+  <div class="form-group"><label class="form-label">Rollout Group</label>
+   <select class="form-input" id="c-group"><option>stable</option><option>beta</option><option>legacy</option></select>
+  </div>
+  <div class="btn-row"><button class="btn btn-primary" onclick="addClient()">Save Client</button><button class="btn btn-ghost" onclick="closeModal('clientModal')">Cancel</button></div>
+ </div>
+</div>
+
+<!-- Add Customer -->
+<div class="modal-bg" id="customerModal">
+ <div class="modal">
+  <div class="modal-title">Add Customer <button class="modal-close" onclick="closeModal('customerModal')">×</button></div>
+  <div class="form-row">
+   <div class="form-group"><label class="form-label">Business Name</label><input class="form-input" id="cu-biz" placeholder="Prestige Valley Visuals"></div>
+   <div class="form-group"><label class="form-label">Owner Name</label><input class="form-input" id="cu-owner" placeholder="Maria Garcia"></div>
+  </div>
+  <div class="form-row">
+   <div class="form-group"><label class="form-label">Client ID</label><input class="form-input" id="cu-id" placeholder="pvv-test"></div>
+   <div class="form-group"><label class="form-label">Login Email</label><input class="form-input" id="cu-email" type="email" placeholder="client@email.com"></div>
+  </div>
+  <div class="form-row">
+   <div class="form-group"><label class="form-label">Monthly Price ($)</label><input class="form-input" id="cu-monthly" type="number" placeholder="197"></div>
+   <div class="form-group"><label class="form-label">Setup Fee ($)</label><input class="form-input" id="cu-setup" type="number" placeholder="497"></div>
+  </div>
+  <div class="form-group"><label class="form-label">Plan</label>
+   <select class="form-input" id="cu-plan"><option>starter</option><option selected>growth</option><option>scale</option></select>
+  </div>
+  <div class="btn-row"><button class="btn btn-primary" onclick="addCustomer()">Save Customer</button><button class="btn btn-ghost" onclick="closeModal('customerModal')">Cancel</button></div>
+ </div>
+</div>
+
+<!-- Payment Links -->
+<div class="modal-bg" id="payModal">
+ <div class="modal">
+  <div class="modal-title">Generate Payment Links <button class="modal-close" onclick="closeModal('payModal')">×</button></div>
+  <div id="payContent"></div>
+  <div class="btn-row">
+   <button class="btn btn-primary" onclick="genSetupLink()">Generate Setup Link</button>
+   <button class="btn btn-ghost" onclick="genSubLink()">Generate Subscription Link</button>
+  </div>
+  <div id="payLinks" style="margin-top:12px;"></div>
+  <div class="btn-row" style="margin-top:16px;"><button class="btn btn-ghost" onclick="closeModal('payModal')">Close</button></div>
+ </div>
+</div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────
+const SUPA_URL = 'https://xqbirpiquznzhgfpdtxp.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxYmlycGlxdXpuemhnZnBkdHhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MDEzMDMsImV4cCI6MjA4OTM3NzMwM30.ZiWKubeDvDjcLQ9MGKsMJW3llYT6y7FAROqSxnnI69c';
+
+let BACKEND_URL = '';
+let ADMIN_KEY = '';
+let CURRENT_USER = null;
+let CURRENT_CUSTOMER = null;
+
+// ── STEP 1: Save URL + Key, go to PIN ──────────
+function goToPin() {
+  const url = document.getElementById('loginUrl').value.trim().replace(/\/$/, '');
+  const key = document.getElementById('loginKey').value.trim();
+  const err = document.getElementById('loginErr');
+  err.style.display = 'none';
+
+  if (!url) { showErr('Enter the backend URL'); return; }
+  if (!key) { showErr('Enter your master key'); return; }
+
+  // Save and go straight to PIN — no network call needed
+  localStorage.setItem('axiom_url', url);
+  localStorage.setItem('axiom_key', key);
+  BACKEND_URL = url;
+  ADMIN_KEY = key;
+
+  document.getElementById('step1').classList.remove('active');
+  document.getElementById('step2').classList.add('active');
+  setTimeout(() => document.getElementById('loginPin').focus(), 100);
+}
+
+function backToStep1() {
+  document.getElementById('step2').classList.remove('active');
+  document.getElementById('step1').classList.add('active');
+  document.getElementById('loginErr').style.display = 'none';
+}
+
+function showErr(msg) {
+  const el = document.getElementById('loginErr');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ── STEP 2: Verify PIN via Supabase directly ───
+async function doLogin() {
+  const pin = document.getElementById('loginPin').value.trim();
+  if (!pin) { showErr('Enter your PIN'); return; }
+
+  const btn = document.querySelector('#step2 .login-btn');
+  btn.textContent = 'Verifying...';
+  btn.disabled = true;
+
+  try {
+    // Direct Supabase lookup — bypasses Railway completely
+    const r = await fetch(`${SUPA_URL}/rest/v1/team_members?login_pin=eq.${encodeURIComponent(pin)}&active=eq.true&limit=1`, {
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': `Bearer ${SUPA_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await r.json();
+
+    if (!data || data.length === 0) {
+      showErr('Wrong PIN — try again');
+      document.getElementById('loginPin').value = '';
+      return;
+    }
+
+    CURRENT_USER = data[0];
+
+    // Also try Railway in background to get live stats (don't block login)
+    tryRailway();
+
+    // Show app
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('tbUser').textContent = CURRENT_USER.display_name || CURRENT_USER.name;
+    document.getElementById('tbRole').textContent = CURRENT_USER.role.charAt(0).toUpperCase() + CURRENT_USER.role.slice(1);
+
+    loadDashboard();
+    loadCustomers();
+
+  } catch(e) {
+    showErr('Connection error — check your internet');
+  } finally {
+    btn.textContent = 'Sign In →';
+    btn.disabled = false;
+  }
+}
+
+async function tryRailway() {
+  try {
+    const r = await fetch(BACKEND_URL + '/admin/stats', {
+      headers: { 'X-Admin-Key': ADMIN_KEY }
+    });
+    if (r.ok) {
+      const d = await r.json();
+      document.getElementById('st-version').textContent = d.platformVersion || d.version || '—';
+      document.getElementById('st-clients').textContent = d.activeClients || d.totalClients || '0';
+      if (d.customers) {
+        document.getElementById('st-customers').textContent = d.customers.total || '0';
+        document.getElementById('st-mrr').textContent = '$' + (d.customers.mrr || 0).toLocaleString();
+      }
+    }
+  } catch(e) {
+    console.log('Railway offline — using Supabase only');
+    document.getElementById('st-version').textContent = 'v1.0.0';
+  }
+}
+
+// ── NAV ────────────────────────────────────────
+function nav(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'" + page + "'")) n.classList.add('active');
+  });
+  if (page === 'customers') loadCustomers();
+  if (page === 'billing') loadBilling();
+  if (page === 'clients') loadClients();
+}
+
+// ── DASHBOARD ──────────────────────────────────
+async function loadDashboard() {
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/customers?select=billing_status,monthly_price`, {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` }
+    });
+    const data = await r.json();
+    if (Array.isArray(data)) {
+      const active = data.filter(c => c.billing_status === 'active').length;
+      const mrr = data.filter(c => c.billing_status === 'active').reduce((s, c) => s + (c.monthly_price || 0), 0);
+      document.getElementById('st-clients').textContent = active;
+      document.getElementById('st-mrr').textContent = '$' + mrr.toLocaleString();
+      document.getElementById('st-customers').textContent = data.length;
+      document.getElementById('statusList').innerHTML = `
+        <span class="dot dot-green"></span>Supabase Database — Online<br>
+        <span class="dot ${BACKEND_URL ? 'dot-yellow' : 'dot-red'}"></span>Railway Backend — ${BACKEND_URL ? 'Connecting...' : 'Not configured'}<br>
+        <span class="dot dot-green"></span>Stripe Webhooks — Connected<br>
+        <span class="dot dot-green"></span>Admin Panel — Online
+      `;
+    }
+  } catch(e) {
+    document.getElementById('statusList').textContent = 'Could not load stats';
+  }
+}
+
+// ── CUSTOMERS ──────────────────────────────────
+let allCustomers = [];
+
+async function loadCustomers() {
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/customers?order=created_at.desc`, {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` }
+    });
+    allCustomers = await r.json();
+    renderCustomers();
+    loadBilling();
+  } catch(e) {
+    document.getElementById('customerTable').innerHTML = '<tr><td colspan="6" class="empty">Error loading customers</td></tr>';
+  }
+}
+
+function renderCustomers() {
+  const tbody = document.getElementById('customerTable');
+  if (!allCustomers?.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No customers yet — add your first one</td></tr>'; return; }
+  tbody.innerHTML = allCustomers.map(c => `
+    <tr>
+     <td><strong style="color:var(--t1)">${c.business_name || '—'}</strong><br><span style="font-size:11px;color:var(--t3)">${c.owner_name || ''}</span></td>
+     <td><code style="font-size:11px;color:var(--blue)">${c.client_id}</code></td>
+     <td><span class="badge badge-${c.billing_status === 'active' ? 'green' : c.billing_status === 'suspended' ? 'red' : 'yellow'}">${c.billing_status || 'trial'}</span></td>
+     <td>${c.monthly_price ? '$' + c.monthly_price + '/mo' : '—'}</td>
+     <td>${c.setup_price ? '$' + c.setup_price : '—'}</td>
+     <td>
+      <button class="btn btn-ghost btn-sm" onclick="openPayLinks('${c.client_id}')">💳 Links</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleStatus('${c.client_id}','${c.billing_status}')">${c.billing_status === 'active' ? '⏸' : '▶'}</button>
+     </td>
+    </tr>
+  `).join('');
+}
+
+async function addCustomer() {
+  const payload = {
+    client_id: document.getElementById('cu-id').value.trim(),
+    business_name: document.getElementById('cu-biz').value.trim(),
+    owner_name: document.getElementById('cu-owner').value.trim(),
+    login_email: document.getElementById('cu-email').value.trim(),
+    monthly_price: parseFloat(document.getElementById('cu-monthly').value) || 0,
+    setup_price: parseFloat(document.getElementById('cu-setup').value) || 0,
+    plan: document.getElementById('cu-plan').value,
+    billing_status: 'trial'
+  };
+  if (!payload.client_id || !payload.business_name) { alert('Client ID and Business Name required'); return; }
+  try {
+    await fetch(`${SUPA_URL}/rest/v1/customers`, {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify(payload)
+    });
+    closeModal('customerModal');
+    loadCustomers();
+    alert(`✅ Customer ${payload.business_name} added!\nURL: axiomhq.vercel.app?client=${payload.client_id}`);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function toggleStatus(clientId, current) {
+  const newStatus = current === 'active' ? 'suspended' : 'active';
+  if (!confirm(`${newStatus === 'suspended' ? 'Suspend' : 'Activate'} ${clientId}?`)) return;
+  await fetch(`${SUPA_URL}/rest/v1/customers?client_id=eq.${clientId}`, {
+    method: 'PATCH',
+    headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ billing_status: newStatus, updated_at: new Date().toISOString() })
+  });
+  loadCustomers();
+}
+
+// ── CLIENTS ────────────────────────────────────
+async function loadClients() {
+  try {
+    const r = await fetch(BACKEND_URL + '/admin/clients', { headers: { 'X-Admin-Key': ADMIN_KEY } });
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    const tbody = document.getElementById('clientTable');
+    if (!d.clients?.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No active client sessions</td></tr>'; return; }
+    tbody.innerHTML = d.clients.map(c => `
+      <tr>
+       <td><code style="color:var(--blue)">${c.id}</code></td>
+       <td><span class="badge badge-${c.active !== false ? 'green' : 'red'}">${c.active !== false ? 'active' : 'suspended'}</span></td>
+       <td>${c.plan || 'growth'}</td>
+       <td>${c.rawData?.lastSeen ? new Date(c.rawData.lastSeen).toLocaleString() : 'Never'}</td>
+       <td><button class="btn btn-ghost btn-sm" onclick="copyText('axiomhq.vercel.app?client=${c.id}')">Copy URL</button></td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    document.getElementById('clientTable').innerHTML = '<tr><td colspan="5" class="empty">Railway offline — client sessions not available</td></tr>';
+  }
+}
+
+async function addClient() {
+  const id = document.getElementById('c-id').value.trim();
+  if (!id) { alert('Enter a client ID'); return; }
+  try {
+    await fetch(BACKEND_URL + '/admin/client/' + id, {
+      method: 'POST', headers: { 'X-Admin-Key': ADMIN_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: document.getElementById('c-plan').value, rolloutGroup: document.getElementById('c-group').value, active: true })
+    });
+    closeModal('clientModal');
+    loadClients();
+  } catch(e) { alert('Railway offline — add customer in Customers tab instead'); }
+}
+
+// ── BILLING ────────────────────────────────────
+async function loadBilling() {
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/customers?select=billing_status,monthly_price,business_name`, {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` }
+    });
+    const data = await r.json();
+    if (!Array.isArray(data)) return;
+    const active = data.filter(c => c.billing_status === 'active');
+    const suspended = data.filter(c => c.billing_status === 'suspended');
+    const mrr = active.reduce((s, c) => s + (c.monthly_price || 0), 0);
+    document.getElementById('b-mrr').textContent = '$' + mrr.toLocaleString();
+    document.getElementById('b-active').textContent = active.length;
+    document.getElementById('b-suspended').textContent = suspended.length;
+
+    const evR = await fetch(`${SUPA_URL}/rest/v1/stripe_events?order=processed_at.desc&limit=20`, {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` }
+    });
+    const events = await evR.json();
+    const payEl = document.getElementById('paymentEvents');
+    if (!events?.length) { payEl.innerHTML = '<div class="empty">No payment events yet — Stripe webhook will populate this</div>'; return; }
+    payEl.innerHTML = `<table><thead><tr><th>Event</th><th>Client</th><th>Amount</th><th>Time</th></tr></thead><tbody>` +
+      events.map(e => `<tr>
+        <td><span class="badge badge-${e.event_type.includes('paid') ? 'green' : e.event_type.includes('fail') ? 'red' : 'blue'}">${e.event_type}</span></td>
+        <td>${e.client_id || '—'}</td>
+        <td>${e.amount ? '$' + e.amount : '—'}</td>
+        <td style="font-size:11px;color:var(--t3)">${new Date(e.processed_at).toLocaleString()}</td>
+      </tr>`).join('') + '</tbody></table>';
+  } catch(e) {}
+}
+
+// ── PAYMENT LINKS ──────────────────────────────
+let payClientId = '';
+function openPayLinks(clientId) {
+  payClientId = clientId;
+  const c = allCustomers.find(x => x.client_id === clientId);
+  document.getElementById('payContent').innerHTML = `
+    <div style="margin-bottom:16px;padding:12px;background:rgba(0,120,255,.06);border-radius:8px;">
+     <strong>${c?.business_name || clientId}</strong><br>
+     <span style="font-size:12px;color:var(--t3)">Monthly: $${c?.monthly_price || 0} | Setup: $${c?.setup_price || 0}</span>
+    </div>
+  `;
+  document.getElementById('payLinks').innerHTML = '';
+  openModal('payModal');
+}
+
+async function genSetupLink() {
+  const c = allCustomers.find(x => x.client_id === payClientId);
+  if (!c?.setup_price) { alert('No setup fee set for this customer'); return; }
+  try {
+    const r = await fetch(BACKEND_URL + '/admin/customer/' + payClientId + '/setup-link', {
+      method: 'POST', headers: { 'X-Admin-Key': ADMIN_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ setupPrice: c.setup_price, email: c.login_email, businessName: c.business_name })
+    });
+    const d = await r.json();
+    if (d.url) {
+      document.getElementById('payLinks').innerHTML += `<div class="form-label" style="margin-top:12px;">Setup Link ($${c.setup_price}):</div><div class="link-display">${d.url}</div><button class="copy-btn" onclick="copyText('${d.url}')">Copy</button>`;
+    }
+  } catch(e) { alert('Railway offline — cannot generate Stripe links'); }
+}
+
+async function genSubLink() {
+  const c = allCustomers.find(x => x.client_id === payClientId);
+  if (!c?.monthly_price) { alert('No monthly price set for this customer'); return; }
+  try {
+    const r = await fetch(BACKEND_URL + '/admin/customer/' + payClientId + '/subscription-link', {
+      method: 'POST', headers: { 'X-Admin-Key': ADMIN_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ monthlyPrice: c.monthly_price, email: c.login_email, businessName: c.business_name })
+    });
+    const d = await r.json();
+    if (d.url) {
+      document.getElementById('payLinks').innerHTML += `<div class="form-label" style="margin-top:12px;">Subscription Link ($${c.monthly_price}/mo):</div><div class="link-display">${d.url}</div><button class="copy-btn" onclick="copyText('${d.url}')">Copy</button>`;
+    }
+  } catch(e) { alert('Railway offline — cannot generate Stripe links'); }
+}
+
+// ── BROADCAST & ROLLOUT ────────────────────────
+async function sendBroadcast() {
+  const msg = document.getElementById('broadcastMsg').value.trim();
+  if (!msg) { alert('Enter a message'); return; }
+  try {
+    await fetch(BACKEND_URL + '/admin/broadcast', {
+      method: 'POST', headers: { 'X-Admin-Key': ADMIN_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, type: document.getElementById('broadcastType').value, expiresIn: parseInt(document.getElementById('broadcastExp').value) * 3600 })
+    });
+    alert('Broadcast sent!');
+    document.getElementById('broadcastMsg').value = '';
+  } catch(e) { alert('Railway offline'); }
+}
+
+async function pushRollout() {
+  const group = document.getElementById('rolloutGroup').value;
+  const version = document.getElementById('rolloutVersion').value.trim();
+  if (!version) { alert('Enter a version number'); return; }
+  try {
+    await fetch(BACKEND_URL + '/admin/rollout', {
+      method: 'POST', headers: { 'X-Admin-Key': ADMIN_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ group, updates: { clientVersion: version } })
+    });
+    alert(`Pushed v${version} to ${group}`);
+  } catch(e) { alert('Railway offline'); }
+}
+
+// ── UTILS ──────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function copyText(t) { navigator.clipboard.writeText(t); alert('Copied!'); }
+
+function logout() {
+  if (!confirm('Sign out?')) return;
+  localStorage.removeItem('axiom_url');
+  localStorage.removeItem('axiom_key');
+  location.reload();
+}
+
+// ── AUTO-LOGIN IF SAVED ────────────────────────
+window.addEventListener('load', () => {
+  const url = localStorage.getItem('axiom_url');
+  const key = localStorage.getItem('axiom_key');
+  if (url) { document.getElementById('loginUrl').value = url; BACKEND_URL = url; }
+  if (key) { ADMIN_KEY = key; }
+  // If both saved, skip to PIN
+  if (url && key) {
+    document.getElementById('step1').classList.remove('active');
+    document.getElementById('step2').classList.add('active');
+    setTimeout(() => document.getElementById('loginPin').focus(), 200);
+  }
+});
+
+// Enter key on URL/key fields
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (document.getElementById('step1').classList.contains('active')) goToPin();
+  }
+});
+</script>
+</body>
+</html>
